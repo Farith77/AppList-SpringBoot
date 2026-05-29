@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: 'postgres:15-alpine'
+    container_name: applist_db
+    environment:
+      POSTGRES_DB: db_applist
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 54321_sql
+    ports:
+      - '5432:5432'
+    restart: unless-stopped

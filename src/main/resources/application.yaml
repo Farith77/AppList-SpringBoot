@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: AppList
+
+  # Configuración de la Base de Datos (PostgreSQL)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_applist?serverTimezone=America/Lima
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # Configuración de JPA / Hibernate (El Corazón del Enfoque Híbrido)
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # 'update' permite que las tablas se creen/actualicen solas según tus clases Kotlin
+      ddl-auto: update
+    show-sql: true          # Muestra las consultas SQL en la consola (útil para SQA)
+    properties:
+      hibernate:
+        format_sql: true    # Embellece el SQL en la consola
+        jdbc:
+          lob:
+            non_contextual_creation: true
