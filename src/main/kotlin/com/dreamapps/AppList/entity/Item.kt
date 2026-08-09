@@ -2,19 +2,18 @@ package com.dreamapps.AppList.entity
 
 import jakarta.persistence.*
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.github.f4b6a3.uuid.UuidCreator
 
 @Entity
 @Table(name = "item")
 class Item(
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "item_cod")
-    val itemCod: Int = 0,
+    @Column(name = "item_cod", length = 36)
+    var itemCod: String = UuidCreator.getTimeOrderedEpoch().toString(),
 
     // longitud de 250 para permitir nombres/frases reales
     @Column(name = "item_name", length = 250, nullable = false)
-    var itemName: String,
+    var itemName: String = "",
 
     // Agregamos el orden
     @Column(name = "item_order")
