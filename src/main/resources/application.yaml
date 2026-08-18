@@ -22,3 +22,15 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
+
+# Configuración de TMDB
+tmdb:
+  api:
+    url: https://api.themoviedb.org/3
+    token: ${TMDB_TOKEN}
+
+# Configuracion de google books
+google:
+  books:
+    api:
+      key: ${GOOGLE_BOOKS_KEY}
