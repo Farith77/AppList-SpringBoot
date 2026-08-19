@@ -61,4 +61,29 @@ class TmdbClient(
             .retrieve()
             .body(TmdbTvDetails::class.java)
     }
+
+    // Buscar colección/saga por nombre
+    fun buscarColeccion(query: String): TmdbCollectionSearchResponse? {
+        return restClient.get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/search/collection")
+                    .queryParam("query", query)
+                    .queryParam("language", "es-MX") // Mantenemos el idioma en español
+                    .build()
+            }
+            .retrieve()
+            .body(TmdbCollectionSearchResponse::class.java)
+    }
+
+    // Obtener detalles de la colección (para contar cuántas películas la conforman)
+    fun obtenerDetallesColeccion(collectionId: Int): TmdbCollectionDetailResponse? {
+        return restClient.get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/collection/$collectionId")
+                    .queryParam("language", "es-MX")
+                    .build()
+            }
+            .retrieve()
+            .body(TmdbCollectionDetailResponse::class.java)
+    }
 }

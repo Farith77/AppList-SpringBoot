@@ -18,7 +18,7 @@ class AutoEnrichmentService(
         val formatoLimpio = formato?.lowercase()
 
         return when (formatoLimpio) {
-            "pelicula" -> buscarPeliculaTmdb(nombreItem)
+            "pelicula", "película", "saga de peliculas", "saga de películas" -> buscarPeliculaTmdb(nombreItem)
 
             // Series y Animes van a TMDB
             "serie", "anime" -> buscarSerieTmdb(nombreItem, formato)
@@ -33,18 +33,61 @@ class AutoEnrichmentService(
         }
     }
 
-    // --- PELÍCULAS (TMDB) ---
+    // --- PELÍCULAS Y SAGAS (TMDB) ---
     private fun buscarPeliculaTmdb(nombre: String): ItemDetailDto? {
-        val respuesta = tmdbClient.buscarPelicula(nombre)
-        val mejor = respuesta?.results?.firstOrNull() ?: return null
+        // 1. Intentamos buscar si es una Saga / Colección primero
+        val respuestaColeccion = tmdbClient.buscarColeccion(nombre)
+        val mejorColeccion = respuestaColeccion?.results?.firstOrNull()
 
-        val urlImagen = mejor.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
+        if (mejorColeccion != null) {
+            val detalles = tmdbClient.obtenerDetallesColeccion(mejorColeccion.id)
+            val urlImagen = mejorColeccion.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
+
+            // ====================================================================
+            // NUEVO: BUSCADOR DE PRÓXIMAS FECHAS EN LA SAGA
+            // ====================================================================
+            var esProximo = false
+            var fechaProxima: LocalDate? = null
+
+            detalles?.parts?.forEach { peliculaDeLaSaga ->
+                if (!peliculaDeLaSaga.releaseDate.isNullOrBlank()) {
+                    try {
+                        val fechaEstreno = LocalDate.parse(peliculaDeLaSaga.releaseDate)
+                        if (fechaEstreno.isAfter(LocalDate.now())) {
+                            esProximo = true
+
+                            // Guardamos la fecha si es la primera que encontramos en el futuro,
+                            // o si es MÁS CERCANA que la que ya teníamos guardada.
+                            if (fechaProxima == null || fechaEstreno.isBefore(fechaProxima)) {
+                                fechaProxima = fechaEstreno
+                            }
+                        }
+                    } catch (_: DateTimeParseException) { }
+                }
+            }
+
+            return ItemDetailDto(
+                itemCod = "",
+                formatoItem = "Saga de Películas",
+                cantidadEntregas = detalles?.parts?.size,
+                proximoContenido = esProximo,
+                fechaProximoContenido = fechaProxima, // ¡Ahora sí mostrará la fecha futura!
+                imagen = urlImagen,
+                rating = null
+            )
+        }
+
+        // 2. Si no encontró colección, hacemos la búsqueda normal de película individual
+        val respuestaPelicula = tmdbClient.buscarPelicula(nombre)
+        val mejorPeli = respuestaPelicula?.results?.firstOrNull() ?: return null
+
+        val urlImagen = mejorPeli.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
         var esProximo = false
         var fechaProxima: LocalDate? = null
 
-        if (!mejor.releaseDate.isNullOrBlank()) {
+        if (!mejorPeli.releaseDate.isNullOrBlank()) {
             try {
-                val fechaEstreno = LocalDate.parse(mejor.releaseDate)
+                val fechaEstreno = LocalDate.parse(mejorPeli.releaseDate)
                 if (fechaEstreno.isAfter(LocalDate.now())) {
                     esProximo = true
                     fechaProxima = fechaEstreno
@@ -53,9 +96,13 @@ class AutoEnrichmentService(
         }
 
         return ItemDetailDto(
-            itemCod = "", formatoItem = "Pelicula", cantidadEntregas = null,
-            proximoContenido = esProximo, fechaProximoContenido = fechaProxima,
-            imagen = urlImagen, rating = null
+            itemCod = "",
+            formatoItem = "Pelicula",
+            cantidadEntregas = 1,
+            proximoContenido = esProximo,
+            fechaProximoContenido = fechaProxima,
+            imagen = urlImagen,
+            rating = null
         )
     }
 

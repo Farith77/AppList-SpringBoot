@@ -58,3 +58,23 @@ data class TmdbEpisode(
     @JsonProperty("air_date")
     val airDate: String?
 )
+
+// Respuestas para la búsqueda de la Colección
+data class TmdbCollectionSearchResponse(
+    val results: List<TmdbCollectionResult>
+)
+
+data class TmdbCollectionResult(
+    val id: Int,
+    @JsonProperty("poster_path") val posterPath: String?
+)
+
+// Respuesta para el detalle exacto de la Colección
+data class TmdbCollectionDetailResponse(
+    val parts: List<TmdbCollectionPart> // 'parts' contiene la lista de películas de la saga
+)
+
+data class TmdbCollectionPart(
+    val id: Int,
+    @JsonProperty("release_date") val releaseDate: String? // <-- ¡NUEVO CAMPO!
+)

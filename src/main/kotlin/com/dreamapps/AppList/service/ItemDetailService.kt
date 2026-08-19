@@ -58,8 +58,16 @@ class ItemDetailService(
         val detalleExistente = itemDetailRepository.findById(itemCod).orElse(null)
         val formatoFinal = formatoSugerido ?: detalleExistente?.formatoItem
 
-        val datosExternos = autoEnrichmentService.buscarDetallesAutomaticos(item.itemName, formatoFinal)
-            ?: throw IllegalArgumentException("No se encontró información en internet para '${item.itemName}' con formato '$formatoFinal'")
+        // ====================================================================
+        // MAGIA DE LIMPIEZA (Regex)
+        // Eliminamos "1. ", "a) ", "- ", etc. para que la API no se confunda
+        // ====================================================================
+        val regex = Regex("^(?:[0-9]+|[a-zA-Z])[.)-]\\s+|^[-*•]\\s+")
+        val nombreLimpio = item.itemName.replace(regex, "").trim()
+
+        // Pasamos el nombreLimpio al servicio externo en lugar de item.itemName
+        val datosExternos = autoEnrichmentService.buscarDetallesAutomaticos(nombreLimpio, formatoFinal)
+            ?: throw IllegalArgumentException("No se encontró información en internet para '$nombreLimpio' con formato '$formatoFinal'")
 
         val detalle = detalleExistente ?: ItemDetail(item = item)
 
