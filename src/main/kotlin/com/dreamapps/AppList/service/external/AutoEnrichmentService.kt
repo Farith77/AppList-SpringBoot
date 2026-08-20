@@ -7,12 +7,14 @@ import com.dreamapps.AppList.service.external.client.TmdbClient
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import com.dreamapps.AppList.service.external.client.RawgClient
 
 @Service
 class AutoEnrichmentService(
     private val tmdbClient: TmdbClient,
     private val googleBooksClient: GoogleBooksClient,
-    private val aniListClient: AniListClient
+    private val aniListClient: AniListClient,
+    private val rawgClient: RawgClient
 ) {
     fun buscarDetallesAutomaticos(nombreItem: String, formato: String?): ItemDetailDto? {
         val formatoLimpio = formato?.lowercase()
@@ -28,6 +30,9 @@ class AutoEnrichmentService(
 
             // Libros tradicionales y Cómics occidentales van a Google Books
             "libro", "comic" -> buscarLibroGoogle(nombreItem, formato)
+
+            // ¡Actualizamos para incluir Sagas!
+            "videojuego", "juego", "game", "saga de videojuegos" -> buscarVideojuegoRawg(nombreItem)
 
             else -> null
         }
@@ -71,7 +76,7 @@ class AutoEnrichmentService(
                 formatoItem = "Saga de Películas",
                 cantidadEntregas = detalles?.parts?.size,
                 proximoContenido = esProximo,
-                fechaProximoContenido = fechaProxima, // ¡Ahora sí mostrará la fecha futura!
+                fechaProximoContenido = fechaProxima,
                 imagen = urlImagen,
                 rating = null
             )
@@ -166,6 +171,63 @@ class AutoEnrichmentService(
             proximoContenido = false,
             fechaProximoContenido = null,
             imagen = urlImagen,
+            rating = null
+        )
+    }
+
+    // --- VIDEOJUEGOS Y SAGAS (RAWG) ---
+    private fun buscarVideojuegoRawg(nombre: String): ItemDetailDto? {
+        val respuesta = rawgClient.buscarVideojuego(nombre)
+        val mejor = respuesta?.results?.firstOrNull() ?: return null
+
+        val respuestaSaga = rawgClient.obtenerSagaDeVideojuego(mejor.id)
+        val otrosJuegos = respuestaSaga?.results ?: emptyList()
+        val otrosJuegosEnSaga = respuestaSaga?.count ?: 0
+
+        val formatoFinal = if (otrosJuegosEnSaga > 0) "Saga de Videojuegos" else "Videojuego"
+        val totalEntregas = if (otrosJuegosEnSaga > 0) otrosJuegosEnSaga + 1 else 1
+
+        var esProximo = mejor.tba
+        var fechaProxima: LocalDate? = null
+
+        // 1. Revisamos la fecha del juego principal (ej. GTA V)
+        if (!mejor.released.isNullOrBlank()) {
+            try {
+                val fechaEstreno = LocalDate.parse(mejor.released)
+                if (fechaEstreno.isAfter(LocalDate.now())) {
+                    esProximo = true
+                    fechaProxima = fechaEstreno
+                }
+            } catch (_: DateTimeParseException) { }
+        }
+
+        // 2. Revisamos las fechas de TODOS los demás juegos de la saga (ej. GTA VI)
+        otrosJuegos.forEach { juegoSaga ->
+            if (juegoSaga.tba) {
+                esProximo = true // Si alguno está "Por anunciar", activamos el switch
+            }
+
+            if (!juegoSaga.released.isNullOrBlank()) {
+                try {
+                    val fechaEstreno = LocalDate.parse(juegoSaga.released)
+                    if (fechaEstreno.isAfter(LocalDate.now())) {
+                        esProximo = true
+                        // Guardamos la fecha si es la primera futura que encontramos o la más cercana
+                        if (fechaProxima == null || fechaEstreno.isBefore(fechaProxima)) {
+                            fechaProxima = fechaEstreno
+                        }
+                    }
+                } catch (_: DateTimeParseException) { }
+            }
+        }
+
+        return ItemDetailDto(
+            itemCod = "",
+            formatoItem = formatoFinal,
+            cantidadEntregas = totalEntregas,
+            proximoContenido = esProximo,
+            fechaProximoContenido = fechaProxima, // ¡Ahora sí atrapará el futuro!
+            imagen = mejor.backgroundImage,
             rating = null
         )
     }
