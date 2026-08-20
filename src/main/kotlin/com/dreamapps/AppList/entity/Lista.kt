@@ -1,5 +1,6 @@
 package com.dreamapps.AppList.entity
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import com.github.f4b6a3.uuid.UuidCreator
 
@@ -26,6 +27,12 @@ class Lista(
     // Campo añadido para sincronizar con la Papelera de Android (Eliminado lógico)
     @Column(name = "list_active")
     var listActive: Boolean = true,
+
+    // Relación con el Usuario dueño de la lista
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    var user: Usuario? = null,
 
     // RELACIÓN EN CASCADA
     @OneToMany(mappedBy = "lista", cascade = [CascadeType.ALL], orphanRemoval = true)

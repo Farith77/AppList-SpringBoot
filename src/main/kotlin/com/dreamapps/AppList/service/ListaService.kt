@@ -1,6 +1,7 @@
 package com.dreamapps.AppList.service
 
 import com.dreamapps.AppList.entity.Lista
+import com.dreamapps.AppList.entity.Usuario
 import com.dreamapps.AppList.repository.ListaRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -8,25 +9,25 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ListaService(private val listaRepository: ListaRepository) {
 
-    // 1. Obtener solo listas activas (Ignoramos la papelera)
-    fun obtenerTodasLasListas(): List<Lista> {
-        return listaRepository.findByListActiveTrue()
+    // 1. Obtener solo listas activas del usuario
+    fun obtenerTodasLasListas(user: Usuario): List<Lista> {
+        return listaRepository.findByUserAndListActiveTrueOrderByListOrderAsc(user)
     }
 
-    // 2. Crear Lista
-    fun crearLista(nuevaLista: Lista): Lista {
+    // 2. Crear Lista asignándole el usuario autenticado
+    fun crearLista(user: Usuario, nuevaLista: Lista): Lista {
         if (nuevaLista.listName.isBlank()) {
             throw IllegalArgumentException("El nombre de la lista no puede estar vacío")
         }
-        // Por si acaso, nos aseguramos de que nazca activa
+        nuevaLista.user = user
         nuevaLista.listActive = true
         return listaRepository.save(nuevaLista)
     }
 
-    // 3. Actualizar Lista
-    fun actualizarLista(id: String, listaActualizada: Lista): Lista {
-        val listaExistente = listaRepository.findById(id)
-            .orElseThrow { Exception("Lista no encontrada con el id: $id") }
+    // 3. Actualizar Lista validando pertenencia al usuario
+    fun actualizarLista(user: Usuario, id: String, listaActualizada: Lista): Lista {
+        val listaExistente = listaRepository.findByListCodAndUser(id, user)
+            .orElseThrow { IllegalArgumentException("Lista no encontrada o no pertenece al usuario: $id") }
 
         listaExistente.listName = listaActualizada.listName
         listaExistente.listDescription = listaActualizada.listDescription
@@ -37,50 +38,44 @@ class ListaService(private val listaRepository: ListaRepository) {
         return listaRepository.save(listaExistente)
     }
 
-    // 4. Mover a papelera (Soft Delete)
-    fun moverAPapelera(id: String) {
-        val listaExistente = listaRepository.findById(id)
-            .orElseThrow { Exception("Lista no encontrada con el id: $id") }
+    // 4. Mover a papelera (Soft Delete) validando usuario
+    fun moverAPapelera(user: Usuario, id: String) {
+        val listaExistente = listaRepository.findByListCodAndUser(id, user)
+            .orElseThrow { IllegalArgumentException("Lista no encontrada o no pertenece al usuario: $id") }
 
-        listaExistente.listActive = false // La marcamos como eliminada
+        listaExistente.listActive = false
         listaRepository.save(listaExistente)
     }
 
-    // 5. Restaurar de la papelera
-    fun restaurarLista(id: String) {
-        val listaExistente = listaRepository.findById(id)
-            .orElseThrow { Exception("Lista no encontrada con el id: $id") }
+    // 5. Restaurar de la papelera validando usuario
+    fun restaurarLista(user: Usuario, id: String) {
+        val listaExistente = listaRepository.findByListCodAndUser(id, user)
+            .orElseThrow { IllegalArgumentException("Lista no encontrada o no pertenece al usuario: $id") }
 
-        listaExistente.listActive = true // La volvemos a activar
+        listaExistente.listActive = true
         listaRepository.save(listaExistente)
     }
 
-    // 6. Borrado físico (Hard Delete) de una sola lista
+    // 6. Borrado físico (Hard Delete) validando usuario
     @Transactional
-    fun eliminarListaFisicamente(id: String) {
-        // En lugar de deleteById directo, la buscamos para que Hibernate
-        // cargue la relación y aplique la cascada correctamente.
-        val lista = listaRepository.findById(id)
-            .orElseThrow { IllegalArgumentException("La lista con ID $id no existe") }
+    fun eliminarListaFisicamente(user: Usuario, id: String) {
+        val lista = listaRepository.findByListCodAndUser(id, user)
+            .orElseThrow { IllegalArgumentException("La lista con ID $id no existe o no pertenece al usuario") }
 
         listaRepository.delete(lista)
     }
 
-    // 7. Vaciar toda la papelera
+    // 7. Vaciar únicamente la papelera del usuario autenticado
     @Transactional
-    fun vaciarPapelera() {
-        // 1. Buscamos todas las listas que están en la papelera
-        val listasEnPapelera = listaRepository.findByListActiveFalse()
-
-        // 2. Las borramos pasándole la colección completa.
-        // Esto fuerza a Hibernate a borrar los ítems de cada lista primero.
+    fun vaciarPapelera(user: Usuario) {
+        val listasEnPapelera = listaRepository.findByUserAndListActiveFalseOrderByListOrderAsc(user)
         if (listasEnPapelera.isNotEmpty()) {
             listaRepository.deleteAll(listasEnPapelera)
         }
     }
 
-    // 8. Obtener ABSOLUTAMENTE TODAS las listas (activas e inactivas)
-    fun obtenerHistorialCompleto(): List<Lista> {
-        return listaRepository.findAll()
+    // 8. Obtener historial completo (activas e inactivas) del usuario
+    fun obtenerHistorialCompleto(user: Usuario): List<Lista> {
+        return listaRepository.findByUserOrderByListOrderAsc(user)
     }
 }

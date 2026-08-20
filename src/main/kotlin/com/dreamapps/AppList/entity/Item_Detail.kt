@@ -19,7 +19,7 @@ class ItemDetail(
     var item: Item? = null,
 
     @Column(name = "formato_item", length = 50)
-    var formatoItem: String? = null, // "Pelicula", "Serie", "Libro", "Viaje", etc.
+    var formatoItem: String? = null,
 
     @Column(name = "cantidad_entregas")
     var cantidadEntregas: Int? = null,
@@ -34,5 +34,5 @@ class ItemDetail(
     var imagen: String? = null,
 
     @Column(name = "rating")
-    var rating: Int? = null // Valoración de 1 a 5
+    var rating: Int? = null
 )

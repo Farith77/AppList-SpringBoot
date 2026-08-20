@@ -9,28 +9,36 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  # Configuración de JPA / Hibernate (El Corazón del Enfoque Híbrido)
+  # Configuración de JPA / Hibernate
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # 'update' permite que las tablas se creen/actualicen solas según tus clases Kotlin
-      ddl-auto: update
-    show-sql: true          # Muestra las consultas SQL en la consola (útil para SQA)
+      ddl-auto: validate   # ¡Modificado para producción!
+    show-sql: false        # ¡Modificado para producción!
     properties:
       hibernate:
-        format_sql: true    # Embellece el SQL en la consola
+        format_sql: false  # ¡Modificado para producción!
         jdbc:
           lob:
             non_contextual_creation: true
 
-# Configuración de TMDB
+# APIS Externas
 tmdb:
   api:
     url: https://api.themoviedb.org/3
     token: ${TMDB_TOKEN}
 
-# Configuracion de google books
 google:
   books:
     api:
       key: ${GOOGLE_BOOKS_KEY}
+
+rawg:
+  api:
+    url: https://api.rawg.io/api
+    key: ${RAWG_API_KEY}
+
+# Seguridad
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 10368000000
