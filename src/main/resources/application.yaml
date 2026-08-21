@@ -1,10 +1,18 @@
+server:
+  port: ${PORT:8080}
+
 spring:
   application:
     name: AppList
 
+  # Desactiva la intercepción automática de compose.yaml en desarrollo
+  docker:
+    compose:
+      enabled: false
+
   # Configuración de la Base de Datos (PostgreSQL)
   datasource:
-    url: jdbc:postgresql://localhost:5432/db_applist?serverTimezone=America/Lima
+    url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -13,11 +21,11 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate   # ¡Modificado para producción!
-    show-sql: false        # ¡Modificado para producción!
+      ddl-auto: update   # por ahora para supabase
+    show-sql: false        # ahorro de logs de memoria para produccion
     properties:
       hibernate:
-        format_sql: false  # ¡Modificado para producción!
+        format_sql: false  # ahorro de logs de memoria para produccion
         jdbc:
           lob:
             non_contextual_creation: true
