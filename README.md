@@ -37,9 +37,9 @@ erDiagram
         string user_id PK "UUID v7"
         string email UK
         string username UK
-        string password "BCrypt Hash (Nullable para Social)"
-        string auth_provider "LOCAL | GOOGLE"
-        string provider_id "ID Externo (Google sub)"
+        string password "BCrypt Hash"
+        string auth_provider "LOCAL o GOOGLE"
+        string provider_id "Google sub ID"
         boolean enabled
     }
 
@@ -50,7 +50,7 @@ erDiagram
         string list_description
         string list_image
         int list_order
-        boolean list_active "Papelera / Soft delete"
+        boolean list_active "Soft delete"
     }
 
     ITEM {
@@ -61,11 +61,11 @@ erDiagram
     }
 
     ITEM_DETAIL {
-        string item_cod PK_FK "MapsId con Item"
+        string item_cod PK, FK "MapsId con Item"
         string formato_item "Pelicula, Libro, etc."
         int cantidad_entregas
         boolean proximo_contenido
-        date fecha_proximo_contenido
+        string fecha_proximo_contenido
         string imagen
         int rating "1 a 5"
     }
